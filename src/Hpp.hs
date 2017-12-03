@@ -4,7 +4,8 @@
 module Hpp (parseDefinition, preprocess,
             hppReadFile, hppIO, HppCaps, hppFileContents) where
 import Control.Arrow (first)
-import Control.Monad (unless)
+import Control.Exception (throwIO)
+import Control.Monad (unless, (<=<))
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -632,10 +633,10 @@ hppIO' cfg env' snk src =
   dischargeHppCaps cfg env' $
   runHpp (liftIO . readLines) (liftIO . snk) (preprocess src)
 
--- | General hpp runner against input source file lines. Any errors
--- encountered are thrown with 'error'.
+-- | General hpp runner against input source file lines. Throws an
+-- 'Error' using 'throwIO' if something goes wrong.
 hppIO :: Config -> Env -> ([String] -> IO ()) -> [String] -> IO ()
-hppIO cfg env' snk = fmap (maybe () (error . show)) . hppIO' cfg env' snk
+hppIO cfg env' snk = maybe (return ()) throwIO <=< hppIO' cfg env' snk
 
 -- | hpp runner that returns output lines.
 hppFileContents :: Config -> Env ->  FilePath -> [String] -> IO (Either Error [String])
